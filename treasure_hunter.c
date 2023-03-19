@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <string.h>
+#include <errno.h>
 
 int verbose = 0;
 
@@ -52,20 +53,20 @@ int main(int argc, char *argv[]) {
 	struct addrinfo *result, *rp;
 	
 	memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_flags = 0;
 	hints.ai_protocol = 0;
-	
-	int s = getaddrinfo("canada", "32400", &hints, &result);
-	//int s = getaddrinfo(server, portChar, &hints, &result);
+
+	//printf("%s, %s\n", server, portChar);	
+	int s = getaddrinfo(server, portChar, &hints, &result);
 	if (s != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
 		exit(EXIT_FAILURE); 
 	}
 	
 //Up to Here is good
-	
+
 	char remote_addr_str[INET6_ADDRSTRLEN];
 	int addr_fam;
 	socklen_t addr_len;
@@ -80,45 +81,35 @@ int main(int argc, char *argv[]) {
 	char local_addr_str[INET6_ADDRSTRLEN];
 	unsigned short local_port;
 
-	char buf[255] = {0};
+	char buf[256] = {0};
 	ssize_t nread;
 
 	int sfd;
-	
-		for (rp = result; rp != NULL; rp = rp->ai_next) {
-		sfd = socket(rp->ai_family, rp->ai_socktype,
-				rp->ai_protocol);
-		if (sfd == -1)
-			continue;
+		sfd = socket(result->ai_family, result->ai_socktype,
+				result->ai_protocol);
 
-		addr_fam = rp->ai_family;
-		addr_len = rp->ai_addrlen;
+		addr_fam = result->ai_family;
+		addr_len = result->ai_addrlen;
 		if (addr_fam == AF_INET) {
-			remote_addr_in = *(struct sockaddr_in *)rp->ai_addr;
+			remote_addr_in = *(struct sockaddr_in *)result->ai_addr;
 			inet_ntop(addr_fam, &remote_addr_in.sin_addr,
 					remote_addr_str, addr_len);
 			//remote_port = ntohs(remote_addr_in.sin_port);
 			//remote_addr = (struct sockaddr *)&remote_addr_in;
-			//local_addr = (struct sockaddr *)&local_addr_in;
-		} else {
-			remote_addr_in6 = *(struct sockaddr_in6 *)rp->ai_addr;
-			inet_ntop(addr_fam, &remote_addr_in6.sin6_addr,
-					remote_addr_str, addr_len);
-			//remote_port = ntohs(remote_addr_in6.sin6_port);
-			//remote_addr = (struct sockaddr *)&remote_addr_in6;
-			//local_addr = (struct sockaddr *)&local_addr_in6;
+			local_addr = (struct sockaddr *)&local_addr_in;
+		} 
+
+		int g = bind(sfd, local_addr, result->ai_addrlen);
+		if (g == -1){
+			
+			printf("Could not Connect\n");
+			exit(EXIT_FAILURE);
 		}
+struct sockaddr_in sin = {};
+s = getsockname(sfd, (struct sockaddr *)&sin, sizeof(sin));
+fprintf(stderr, "Local socket info: %d\n", sin.sin_addr);
+	
 
-	if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1)
-			break;  /* Success */
-
-		close(sfd);
-	}
-
-	if (rp == NULL) {   /* No address succeeded */
-		fprintf(stderr, "Could not connect\n");
-		exit(EXIT_FAILURE);
-	}
 
 	freeaddrinfo(result);
 
@@ -127,108 +118,122 @@ int main(int argc, char *argv[]) {
 		inet_ntop(addr_fam, &local_addr_in.sin_addr,
 				local_addr_str, addr_len);
 		local_port = ntohs(local_addr_in.sin_port);
-	} else {
-		inet_ntop(addr_fam, &local_addr_in6.sin6_addr,
-				local_addr_str, addr_len);
-		local_port = ntohs(local_addr_in6.sin6_port);
 	}
-	/*fprintf(stderr, "Local socket info: %s:%d (family: %d, len: %d)\n",
-			local_addr_str, local_port, addr_fam,
-			addr_len);*/
+	
 
 //Don't touch above here for now
 	unsigned char output[1024] = {0};
 	int location = 0;
 	unsigned char nonce[4] = {0};
 	int tempNonce = 0;
-unsigned char updatePort[4] = {0};
+	unsigned char updatePort[4] = {0};
+	short newPort;
+	int op;
 
-
-		if (write(sfd, array, 8) != 8) {
-			fprintf(stderr, "partial/failed write\n");
-			exit(EXIT_FAILURE);
-		}
-
-		nread = read(sfd, buf, 127);
-		if (nread == -1) {
-			perror("read");
-			exit(EXIT_FAILURE);
-		}
-
-		//printf("Received %zd bytes: %s\n", nread, buf);
-		memcpy(&output[location], &buf[1], buf[0]);
-		location = location + buf[0];
-		if ((buf[buf[0]+1]) != 0){
-			
-			if((buf[buf[0] + 1]) == 1){
-				memcpy(&updatePort, &buf[buf[0] + 2], 2);
-				print_bytes(buf, 100);
-				ntohs(updatePort);
-				print_bytes(updatePort, 8);
-				remote_addr_in.sin_port = htons(updatePort);
-				remote_addr_in6.sin6_port = htons(updatePort);
-			}
-		}
-		memcpy(&tempNonce, &buf[buf[0]+4], 4);
-		tempNonce = ntohl(tempNonce);
-		//printf("%x\n", tempNonce);
-		
-		tempNonce = tempNonce + 1;
-		tempNonce = ntohl(tempNonce);
-		
-		memcpy(&nonce, &tempNonce, 4);
-		//printf("Output: %s\n", output);
-		//print_bytes(buf, 255);
-		//print_bytes(nonce, 4);
-		
-	struct sockaddr_in to;
-	
-	while(buf[0] != NULL){
-		memset(buf, 0, 255);
-		
-		/*if (write(sfd, nonce, 4) != 4) {
-			fprintf(stderr, "partial/failed write\n");
-			exit(EXIT_FAILURE);
-		}
-
-		nread = read(sfd, buf, 127);
-		if (nread == -1) {
-			perror("read");
-			exit(EXIT_FAILURE);
-		}*/
-		//printf("port number %d\n", ntohs(ai_addr);
-		int st = sendto(sfd, nonce, 4, 0,rp->ai_addr, rp->ai_addrlen);
+		int st = sendto(sfd, array, 8, 0,(struct sockaddr *)&remote_addr_in, sizeof(remote_addr_in));
 		nread = recvfrom(sfd, buf, 127, 0, local_addr, sizeof(local_addr));
-		print_bytes(buf,256);
-		//printf("Received %zd bytes: %s\n", nread, buf);
-		//print_bytes(buf, 255);
+
 		memcpy(&output[location], &buf[1], buf[0]);
-
 		location = location + buf[0];
-		if ((buf[buf[0]+1]) != 0){
+		op = buf[buf[0]+1];
+		if (op != 0){
 			
-			if((buf[buf[0] + 1]) == 0){
+			if(op == 1){
+				memcpy(&newPort, &buf[buf[0] + 2], 2);
+				remote_addr_in.sin_port = newPort;
+			}
 
-				memcpy(&portChar, &buf[buf[0] + 2], 4);
-				print_bytes(buf,256);
-				//htons(portChar);
-				print_bytes(portChar,4);
-				remote_addr_in.sin_port = htons(portChar);
+			if(op == 2){
+
+				memcpy(&newPort, &buf[buf[0] + 2], 2);
+				close(sfd);
+				sfd = socket(result->ai_family, result->ai_socktype,
+				result->ai_protocol);
+				local_addr_in.sin_port = newPort;
+				g = bind(sfd, local_addr, result->ai_addrlen);
+				if (g == -1){
+					printf("Could not Connect\n");
+					exit(EXIT_FAILURE);
+				}
+
 			}
 		}
 		memcpy(&tempNonce, &buf[buf[0]+4], 4);
 		tempNonce = ntohl(tempNonce);
-		//printf("%x\n", tempNonce);
 		
 		tempNonce = tempNonce + 1;
 		tempNonce = ntohl(tempNonce);
 		
 		memcpy(&nonce, &tempNonce, 4);
-		
-	
-	//printf("Char %d" , buf[0]);
+print_bytes(buf,256);
+
+	while(buf[0] != NULL){
+
+		memset(buf, 0, 255);
+
+		int st = sendto(sfd, nonce, 4, 0,(struct sockaddr *)&remote_addr_in, sizeof(remote_addr_in));
+
+		nread = recvfrom(sfd, buf, 256, 0, local_addr, sizeof(local_addr));
+print_bytes(buf,256);
+		memcpy(&output[location], &buf[1], buf[0]);
+
+		location = location + buf[0];
+		op = buf[buf[0]+1];
+
+		if (op != 0){
+			
+			if(op == 1){
+				memcpy(&newPort, &buf[buf[0] + 2], 2);
+				remote_addr_in.sin_port = newPort;				
+			}
+			if(op == 2){
+
+printf("Port1: %d\n", ntohs(local_addr_in.sin_port));
+				memcpy(&newPort, &buf[buf[0] + 2], 2);
+				close(sfd);
+
+				sfd = socket(AF_INET, SOCK_DGRAM,
+				0);
+				memset(&local_addr_in, 0, sizeof(local_addr_in));
+				local_addr_in.sin_family = AF_INET;
+				
+				//local_addr_in.sin_port = ntohs(newPort);
+				local_addr_in.sin_family = AF_INET;
+//18005
+//21830
+				local_addr_in.sin_port = newPort;
+				local_addr_in.sin_addr.s_addr = 0;
+				
+				local_addr = (struct sockaddr *)&local_addr_in;
+printf("Port2: %d\n", local_addr_in.sin_port);
+printf("%d\n", sfd);
+//printf("%d\n", newPort);
+
+				g = bind(sfd, local_addr, sizeof(local_addr_in));
+
+				if (g == -1){
+					printf("Could not Connect\n");
+					exit(EXIT_FAILURE);
+				}
+socklen_t foo = sizeof(sin);
+s = getsockname(sfd, (struct sockaddr *)&sin, &foo);
+if (s < 0){
+printf("%s\n", strerror(errno));
+printf("SockName error.\n");
+}
+fprintf(stderr, "Local socket info: %d\n", ntohs(sin.sin_port));
+
+			}
+		}
+
+		memcpy(&tempNonce, &buf[buf[0]+4], 4);
+		tempNonce = ntohl(tempNonce);		
+		tempNonce = tempNonce + 1;
+		tempNonce = ntohl(tempNonce);
+		memcpy(&nonce, &tempNonce, 4);
+
+
 	}
-//print_bytes(output,1024);
 fprintf(stdout,"%s\n", output);
 exit(EXIT_SUCCESS);
 }

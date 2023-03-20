@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
 	struct sockaddr_in local_addr_in;
 	struct sockaddr_in6 local_addr_in6;
 	struct sockaddr *local_addr;
+	socklen_t local_length = &local_length;
 	char local_addr_str[INET6_ADDRSTRLEN];
 	unsigned short local_port;
 
@@ -130,7 +131,7 @@ int main(int argc, char *argv[]) {
 	int op;
 
 		int st = sendto(sfd, array, 8, 0,(struct sockaddr *)&remote_addr_in, sizeof(remote_addr_in));
-		nread = recvfrom(sfd, buf, 127, 0, local_addr, sizeof(local_addr));
+		nread = recvfrom(sfd, buf, 127, 0, local_addr, &local_length);
 
 		memcpy(&output[location], &buf[1], buf[0]);
 		location = location + buf[0];
@@ -197,7 +198,7 @@ int main(int argc, char *argv[]) {
 
 		int st = sendto(sfd, nonce, 4, 0,(struct sockaddr *)&remote_addr_in, sizeof(remote_addr_in));
 
-		nread = recvfrom(sfd, buf, 256, 0, local_addr, sizeof(local_addr));
+		nread = recvfrom(sfd, buf, 256, 0, local_addr, &local_length);
 //print_bytes(buf,256);
 		memcpy(&output[location], &buf[1], buf[0]);
 

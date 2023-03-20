@@ -127,7 +127,7 @@ fprintf(stderr, "Local socket info: %d\n", sin.sin_addr);
 	unsigned char nonce[4] = {0};
 	int tempNonce = 0;
 	unsigned char updatePort[4] = {0};
-	short newPort;
+	unsigned short newPort;
 	int op;
 
 		int st = sendto(sfd, array, 8, 0,(struct sockaddr *)&remote_addr_in, sizeof(remote_addr_in));
@@ -147,15 +147,25 @@ fprintf(stderr, "Local socket info: %d\n", sin.sin_addr);
 
 				memcpy(&newPort, &buf[buf[0] + 2], 2);
 				close(sfd);
-				sfd = socket(result->ai_family, result->ai_socktype,
-				result->ai_protocol);
-				local_addr_in.sin_port = newPort;
-				g = bind(sfd, local_addr, result->ai_addrlen);
+				sfd = socket(AF_INET, SOCK_DGRAM,
+				0);
+				memset(&local_addr_in, 0, sizeof(local_addr_in));
+				local_addr_in.sin_family = AF_INET;
+				local_addr_in.sin_port = htons(newPort);
+				local_addr_in.sin_addr.s_addr = 0;
+				
+				local_addr = (struct sockaddr *)&local_addr_in;
+				g = bind(sfd, local_addr, sizeof(local_addr_in));
 				if (g == -1){
 					printf("Could not Connect\n");
 					exit(EXIT_FAILURE);
 				}
+				
 
+			}
+
+			if(op == 3){
+			
 			}
 		}
 		memcpy(&tempNonce, &buf[buf[0]+4], 4);
@@ -188,40 +198,21 @@ print_bytes(buf,256);
 			}
 			if(op == 2){
 
-printf("Port1: %d\n", ntohs(local_addr_in.sin_port));
 				memcpy(&newPort, &buf[buf[0] + 2], 2);
 				close(sfd);
-
 				sfd = socket(AF_INET, SOCK_DGRAM,
 				0);
 				memset(&local_addr_in, 0, sizeof(local_addr_in));
 				local_addr_in.sin_family = AF_INET;
-				
-				//local_addr_in.sin_port = ntohs(newPort);
-				local_addr_in.sin_family = AF_INET;
-//18005
-//21830
-				local_addr_in.sin_port = newPort;
+				local_addr_in.sin_port = htons(newPort);
 				local_addr_in.sin_addr.s_addr = 0;
 				
 				local_addr = (struct sockaddr *)&local_addr_in;
-printf("Port2: %d\n", local_addr_in.sin_port);
-printf("%d\n", sfd);
-//printf("%d\n", newPort);
-
 				g = bind(sfd, local_addr, sizeof(local_addr_in));
-
 				if (g == -1){
 					printf("Could not Connect\n");
 					exit(EXIT_FAILURE);
 				}
-socklen_t foo = sizeof(sin);
-s = getsockname(sfd, (struct sockaddr *)&sin, &foo);
-if (s < 0){
-printf("%s\n", strerror(errno));
-printf("SockName error.\n");
-}
-fprintf(stderr, "Local socket info: %d\n", ntohs(sin.sin_port));
 
 			}
 		}

@@ -119,6 +119,7 @@ int main(int argc, char *argv[]) {
 	
 
 //Don't touch above here for now
+	struct sockaddr_in sin;
 	unsigned char output[1024] = {0};
 	int location = 0;
 	unsigned char nonce[4] = {0};
@@ -158,6 +159,7 @@ int main(int argc, char *argv[]) {
 					printf("Could not Connect\n");
 					exit(EXIT_FAILURE);
 				}
+
 				
 
 			}
@@ -219,6 +221,13 @@ print_bytes(buf,256);
 					printf("Could not Connect\n");
 					exit(EXIT_FAILURE);
 				}
+socklen_t foo = sizeof(sin);
+s = getsockname(sfd, (struct sockaddr *)&sin, &foo);
+if (s < 0){
+printf("%s\n", strerror(errno));
+printf("SockName error.\n");
+}
+fprintf(stderr, "Local socket info: %d\n", ntohs(sin.sin_port));
 
 			}
 			if(op == 3){
@@ -248,7 +257,7 @@ print_bytes(buf,256);
 			nonce3 = ntohl(nonce3);
 			memcpy(&nonce, &nonce3, 4);
 		}
-		print_bytes(nonce,5);
+		
 
 
 	}

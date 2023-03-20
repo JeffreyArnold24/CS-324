@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
 				0);
 				memset(&local_addr_in, 0, sizeof(local_addr_in));
 				local_addr_in.sin_family = AF_INET;
-				local_addr_in.sin_port = htons(newPort);
+				local_addr_in.sin_port = newPort;
 				local_addr_in.sin_addr.s_addr = 0;
 				
 				local_addr = (struct sockaddr *)&local_addr_in;
@@ -165,6 +165,7 @@ int main(int argc, char *argv[]) {
 			}
 
 			if(op == 3){
+				nonce3 = 0;
 				struct sockaddr_in tempSock;
 				memcpy(&newPort, &buf[buf[0] + 2], 2);
 				printf("%d\n", newPort);
@@ -232,6 +233,7 @@ fprintf(stderr, "Local socket info: %d\n", ntohs(sin.sin_port));
 
 			}
 			if(op == 3){
+				nonce3 = 0;
 				struct sockaddr_in tempSock;
 				socklen_t foo = sizeof(tempSock);
 				memcpy(&newPort, &buf[buf[0] + 2], 2);

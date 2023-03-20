@@ -224,6 +224,7 @@ print_bytes(buf,256);
 
 			}
 			if(op == 3){
+				int 3Nonce = 0;
 				struct sockaddr_in tempSock;
 				socklen_t foo = sizeof(tempSock);
 				memcpy(&newPort, &buf[buf[0] + 2], 2);
@@ -232,8 +233,11 @@ print_bytes(buf,256);
 					
 					recvfrom(sfd, buf, 256, 0, (struct sockaddr *)&tempSock, &foo);
 					printf("%d\n", ntohs(tempSock.sin_port));
-
+					3Nonce = 3Nonce + ntohs(tempSock.sin_port);
+					
 				}
+				3Nonce = 3Nonce + 1;
+				print ("Nonce: %d\n", 3Nonce);
 			}
 		}
 

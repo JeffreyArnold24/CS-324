@@ -165,26 +165,31 @@ int main(int argc, char *argv[]) {
 			}
 
 			if(op == 3){
-				nonce3 = 0;
+				once3 = 0;
 				struct sockaddr_in tempSock;
+				socklen_t foo = sizeof(tempSock);
 				memcpy(&newPort, &buf[buf[0] + 2], 2);
-				printf("%d\n", newPort);
-				for (int i = 0; i < newPort; ++i){
+				for (int i = 0; i < ntohs(newPort); ++i){
 					
-					recvfrom(sfd, buf, 256, 0, (struct sockaddr *)&tempSock, sizeof(tempSock));
-					printf("%d\n", tempSock.sin_port);
-
+					recvfrom(sfd, buf, 256, 0, (struct sockaddr *)&tempSock, &foo);
+					nonce3 = nonce3 + ntohs(tempSock.sin_port);
+					
 				}
+				nonce3 = nonce3 + 1;
 			}
 		}
-		memcpy(&tempNonce, &buf[buf[0]+4], 4);
-		tempNonce = ntohl(tempNonce);
-		
-		tempNonce = tempNonce + 1;
-		tempNonce = ntohl(tempNonce);
-		
-		memcpy(&nonce, &tempNonce, 4);
-print_bytes(buf,256);
+		if(op != 3){
+			memcpy(&tempNonce, &buf[buf[0]+4], 4);
+			tempNonce = ntohl(tempNonce);		
+			tempNonce = tempNonce + 1;
+			tempNonce = ntohl(tempNonce);
+			memcpy(&nonce, &tempNonce, 4);
+		}
+		else{
+			nonce3 = ntohl(nonce3);
+			memcpy(&nonce, &nonce3, 4);
+		}
+//print_bytes(buf,256);
 
 	while(buf[0] != NULL){
 
@@ -225,11 +230,6 @@ print_bytes(buf,256);
 				}
 socklen_t foo = sizeof(sin);
 s = getsockname(sfd, (struct sockaddr *)&sin, &foo);
-if (s < 0){
-printf("%s\n", strerror(errno));
-printf("SockName error.\n");
-}
-fprintf(stderr, "Local socket info: %d\n", ntohs(sin.sin_port));
 
 			}
 			if(op == 3){
@@ -237,16 +237,13 @@ fprintf(stderr, "Local socket info: %d\n", ntohs(sin.sin_port));
 				struct sockaddr_in tempSock;
 				socklen_t foo = sizeof(tempSock);
 				memcpy(&newPort, &buf[buf[0] + 2], 2);
-				printf("Number %d\n", ntohs(newPort));
 				for (int i = 0; i < ntohs(newPort); ++i){
 					
 					recvfrom(sfd, buf, 256, 0, (struct sockaddr *)&tempSock, &foo);
-					printf("%d\n", ntohs(tempSock.sin_port));
 					nonce3 = nonce3 + ntohs(tempSock.sin_port);
 					
 				}
 				nonce3 = nonce3 + 1;
-				printf("Nonce: %d\n", nonce3);
 			}
 		}
 		if(op != 3){

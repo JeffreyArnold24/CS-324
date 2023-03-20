@@ -227,7 +227,7 @@ print_bytes(buf,256);
 				struct sockaddr_in tempSock;
 				memcpy(&newPort, &buf[buf[0] + 2], 2);
 				printf("Number %d\n", ntohs(newPort));
-				for (int i = 0; i < newPort; ++i){
+				for (int i = 0; i < ntohs(newPort); ++i){
 					
 					recvfrom(sfd, buf, 256, 0, (struct sockaddr *)&tempSock, sizeof(tempSock));
 					printf("%d\n", tempSock.sin_port);

@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
 			}
 
 			if(op == 3){
-				once3 = 0;
+				nonce3 = 0;
 				struct sockaddr_in tempSock;
 				socklen_t foo = sizeof(tempSock);
 				memcpy(&newPort, &buf[buf[0] + 2], 2);

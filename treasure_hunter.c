@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
 		int st = sendto(sfd, nonce, 4, 0,(struct sockaddr *)&remote_addr_in, sizeof(remote_addr_in));
 
 		nread = recvfrom(sfd, buf, 256, 0, local_addr, sizeof(local_addr));
-print_bytes(buf,256);
+//print_bytes(buf,256);
 		memcpy(&output[location], &buf[1], buf[0]);
 
 		location = location + buf[0];

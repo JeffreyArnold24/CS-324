@@ -237,12 +237,16 @@ print_bytes(buf,256);
 				printf("Nonce: %d\n", nonce3);
 			}
 		}
-
-		memcpy(&tempNonce, &buf[buf[0]+4], 4);
-		tempNonce = ntohl(tempNonce);		
-		tempNonce = tempNonce + 1;
-		tempNonce = ntohl(tempNonce);
-		memcpy(&nonce, &tempNonce, 4);
+		if(op != 3){
+			memcpy(&tempNonce, &buf[buf[0]+4], 4);
+			tempNonce = ntohl(tempNonce);		
+			tempNonce = tempNonce + 1;
+			tempNonce = ntohl(tempNonce);
+			memcpy(&nonce, &tempNonce, 4);
+		}
+		else{
+			memcpy(&nonce, &nonce3, 4);
+		}
 
 
 	}

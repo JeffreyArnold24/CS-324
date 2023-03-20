@@ -230,7 +230,7 @@ print_bytes(buf,256);
 				for (int i = 0; i < ntohs(newPort); ++i){
 					
 					recvfrom(sfd, buf, 256, 0, (struct sockaddr *)&tempSock, sizeof(tempSock));
-					printf("%d\n", tempSock.sin_port);
+					printf("%d\n", ntohs(tempSock.sin_port));
 
 				}
 			}

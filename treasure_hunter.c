@@ -125,6 +125,7 @@ int main(int argc, char *argv[]) {
 	int tempNonce = 0;
 	unsigned char updatePort[4] = {0};
 	unsigned short newPort;
+	int nonce3 = 0;
 	int op;
 
 		int st = sendto(sfd, array, 8, 0,(struct sockaddr *)&remote_addr_in, sizeof(remote_addr_in));
@@ -221,7 +222,6 @@ print_bytes(buf,256);
 
 			}
 			if(op == 3){
-				int nonce3 = 0;
 				struct sockaddr_in tempSock;
 				socklen_t foo = sizeof(tempSock);
 				memcpy(&newPort, &buf[buf[0] + 2], 2);

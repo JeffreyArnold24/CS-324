@@ -22,7 +22,6 @@ int main(int argc, char *argv[]) {
 	
 	unsigned char array[8];
 	char *server = argv[1];
-	int portInt = atoi(argv[2]);
 	char *portChar = argv[2];
 	int level = atoi(argv[3]);
 	int seed = atoi(argv[4]);
@@ -35,7 +34,6 @@ int main(int argc, char *argv[]) {
 	
 	bzero(array,8);
 	array[0] = 0;
-	int hostindex;
 	
 	array[1] = level;
 	hex_user = USERID;
@@ -50,7 +48,7 @@ int main(int argc, char *argv[]) {
 	//print_bytes(array, 8);
 
 	struct addrinfo hints;
-	struct addrinfo *result, *rp;
+	struct addrinfo *result;
 	
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = AF_INET;
@@ -72,18 +70,13 @@ int main(int argc, char *argv[]) {
 	socklen_t addr_len;
 
 	struct sockaddr_in remote_addr_in;
-	struct sockaddr_in6 remote_addr_in6;
-	struct sockaddr *remote_addr;
 
 	struct sockaddr_in local_addr_in;
-	struct sockaddr_in6 local_addr_in6;
 	struct sockaddr *local_addr;
 	socklen_t local_length = sizeof(local_addr);
 	char local_addr_str[INET6_ADDRSTRLEN];
-	unsigned short local_port;
 
 	char buf[256] = {0};
-	ssize_t nread;
 
 	int sfd;
 		sfd = socket(result->ai_family, result->ai_socktype,
@@ -115,7 +108,6 @@ int main(int argc, char *argv[]) {
 	if (addr_fam == AF_INET) {
 		inet_ntop(addr_fam, &local_addr_in.sin_addr,
 				local_addr_str, addr_len);
-		local_port = ntohs(local_addr_in.sin_port);
 	}
 	
 
@@ -125,13 +117,12 @@ int main(int argc, char *argv[]) {
 	int location = 0;
 	unsigned char nonce[4] = {0};
 	int tempNonce = 0;
-	unsigned char updatePort[4] = {0};
 	unsigned short newPort;
 	int nonce3 = 0;
 	int op;
 
-		int st = sendto(sfd, array, 8, 0,(struct sockaddr *)&remote_addr_in, sizeof(remote_addr_in));
-		nread = recvfrom(sfd, buf, 127, 0, local_addr, &local_length);
+		sendto(sfd, array, 8, 0,(struct sockaddr *)&remote_addr_in, sizeof(remote_addr_in));
+		recvfrom(sfd, buf, 127, 0, local_addr, &local_length);
 
 		memcpy(&output[location], &buf[1], buf[0]);
 		location = location + buf[0];
@@ -192,13 +183,13 @@ int main(int argc, char *argv[]) {
 		}
 //print_bytes(buf,256);
 
-	while(buf[0] != NULL){
+	while(buf[0] != '\0'){
 
 		memset(buf, 0, 255);
 
-		int st = sendto(sfd, nonce, 4, 0,(struct sockaddr *)&remote_addr_in, sizeof(remote_addr_in));
+		sendto(sfd, nonce, 4, 0,(struct sockaddr *)&remote_addr_in, sizeof(remote_addr_in));
 
-		nread = recvfrom(sfd, buf, 256, 0, local_addr, &local_length);
+		recvfrom(sfd, buf, 256, 0, local_addr, &local_length);
 //print_bytes(buf,256);
 		memcpy(&output[location], &buf[1], buf[0]);
 

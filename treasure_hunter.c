@@ -212,7 +212,8 @@ print_bytes(buf,256);
 				0);
 				memset(&local_addr_in, 0, sizeof(local_addr_in));
 				local_addr_in.sin_family = AF_INET;
-				local_addr_in.sin_port = htons(newPort);
+				//local_addr_in.sin_port = htons(newPort);
+				local_addr_in.sin_port = newPort;				
 				local_addr_in.sin_addr.s_addr = 0;
 				
 				local_addr = (struct sockaddr *)&local_addr_in;

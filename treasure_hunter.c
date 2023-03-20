@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 	struct sockaddr_in local_addr_in;
 	struct sockaddr_in6 local_addr_in6;
 	struct sockaddr *local_addr;
-	socklen_t local_length = &local_length;
+	socklen_t local_length = sizeof(local_addr);
 	char local_addr_str[INET6_ADDRSTRLEN];
 	unsigned short local_port;
 

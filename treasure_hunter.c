@@ -245,8 +245,10 @@ print_bytes(buf,256);
 			memcpy(&nonce, &tempNonce, 4);
 		}
 		else{
+			nonce3 = ntohl(nonce3);
 			memcpy(&nonce, &nonce3, 4);
 		}
+		print_bytes(nonce,5);
 
 
 	}

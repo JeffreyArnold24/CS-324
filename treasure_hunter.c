@@ -165,7 +165,15 @@ fprintf(stderr, "Local socket info: %d\n", sin.sin_addr);
 			}
 
 			if(op == 3){
-			
+				struct sockaddr_in tempSock;
+				memcpy(&newPort, &buf[buf[0] + 2], 2);
+				printf("%d\n", newPort);
+				for (int i = 0; i < newPort; ++i){
+					
+					recvfrom(sfd, buf, 256, 0, (struct sockaddr *)&tempSock, sizeof(tempSock));
+					printf("%d\n", tempSock.sin_port);
+
+				}
 			}
 		}
 		memcpy(&tempNonce, &buf[buf[0]+4], 4);

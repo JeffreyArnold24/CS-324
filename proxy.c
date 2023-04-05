@@ -192,7 +192,8 @@ void handle_client(int sfd){
 	while (i != 0){
 		i = read(sfd2, res, 255);
 		if (i < 0){
-			printf("Could not read: %s\n", strerror(errno));
+			printf("Could not read (a): %s %d\n", strerror(errno), sfd2);
+			exit(0);
 		}
 		memcpy(&buf[loc], &res, 255);
 		loc = loc + i;

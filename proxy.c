@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 /* Recommended max cache and object sizes */
 #define MAX_CACHE_SIZE 1049000
@@ -22,11 +23,6 @@ void print_bytes(unsigned char *, int);
 int open_sfd();
 void handle_client();
 void *thread(void *descriptor);
-/*
-void sbuf_init(sbuf_t *sp, int n);
-void sbuf_deinit(sbuf_t *sp);
-void sbuf_insert(sbuf_t *sp, int item);
-int sbuf_remove(sbuf_t *sp);
 
 typedef struct {
    int *buf; //Buffer array
@@ -38,7 +34,14 @@ typedef struct {
    sem_t items; //Counts abailable items
 } sbuf_t;
 
-sbuf_t sbuf;*/
+void sbuf_init(sbuf_t *sp, int n);
+void sbuf_deinit(sbuf_t *sp);
+void sbuf_insert(sbuf_t *sp, int item);
+int sbuf_remove(sbuf_t *sp);
+
+
+
+sbuf_t sbuf;
 
 int main(int argc, char *argv[])
 {
@@ -48,10 +51,10 @@ int main(int argc, char *argv[])
 
 	struct sockaddr_storage addr;
  	socklen_t addr_len = sizeof(addr);
-	//sbuf_init(&sbuf, 5);
-	/*for (int i = 0; i < 8; i++){
+	sbuf_init(&sbuf, 5);
+	for (int i = 0; i < 8; i++){
 		pthread_create(&tid, NULL, thread, NULL); 
-	}*/
+	}
 	while(1){
 		
 		int sfd2 = accept(sfd, (struct sockaddr *)&addr, &addr_len);
@@ -59,8 +62,8 @@ int main(int argc, char *argv[])
 		if (sfd2 < 0){
 			printf("Could not accept: %s\n", strerror(errno));
 		}
-		pthread_create(&tid, NULL, thread, sfd2);
-		//sbuf_insert(&sbuf, sfd2);
+		//pthread_create(&tid, NULL, thread, sfd2);
+		sbuf_insert(&sbuf, sfd2);
 		//close(sfd2);
 	}
 	printf("%s\n", user_agent_hdr);
@@ -71,17 +74,16 @@ void *thread(void *descriptor){
 	//int id = *((int *)descriptor);
 	
 		pthread_detach(pthread_self());
-	//while (1) {
-		//int connfd = sbuf_remove(&sbuf);
+	while (1) {
+		int connfd = sbuf_remove(&sbuf);
 		handle_client(descriptor);
-		//close(connfd);
-	//}
+		close(connfd);
+	}
 	//close(id);
 	//return NULL;
 }
 
 void handle_client(int sfd){
-printf("This one\n");
 	char buf[MAX_OBJECT_SIZE] = {0};
 	char res[255] = {0};
 	char method[16], hostname[64], port[8], path[64], headers[1024] = {0};
@@ -379,36 +381,34 @@ void print_bytes(unsigned char *bytes, int byteslen) {
 	}
 	printf("\n");
 }
-/*
+
 void sbuf_init(sbuf_t *sp, int n) {
-   sp->buf = Calloc(n, sizeof(int));
+   sp->buf = calloc(n, sizeof(int));
    sp->n = n;                   
    sp->front = sp->rear = 0;     
-   Sem_init(&sp->mutex, 0, 1);   
-   Sem_init(&sp->slots, 0, n);   
-   Sem_init(&sp->items, 0, 0);   
+   sem_init(&sp->mutex, 0, 1);   
+   sem_init(&sp->slots, 0, n);   
+   sem_init(&sp->items, 0, 0);   
 }
 
 void sbuf_deinit(sbuf_t *sp) {
-   Free(sp->buf);
+   free(sp->buf);
 }
 
 void sbuf_insert(sbuf_t *sp, int item) {
-   P(&sp->slots);                    
-   P(&sp->mutex);                     
-   sp->rear = (sp->rear + 1) % sp->n;     
-   sp->buf[sp->rear] = item;            
-   V(&sp->mutex);                         
-   V(&sp->items);                         
+    sem_wait(&sp->slots);                       
+    sem_wait(&sp->mutex);                         
+    sp->buf[(++sp->rear)%(sp->n)] = item;  
+    sem_post(&sp->mutex);                          
+    sem_post(&sp->items);                         
 }
 
 int sbuf_remove(sbuf_t *sp) {
    int item;
-   P(&sp->items);                   
-   P(&sp->mutex);                  
-   sp->front = (sp->front + 1) % sp->n; 
-   item = sp->buf[sp->front];           
-   V(&sp->mutex);                      
-   V(&sp->slots);                         
-   return item;
-}*/
+    sem_wait(&sp->items);                         
+    sem_wait(&sp->mutex);                       
+    item = sp->buf[(++sp->front)%(sp->n)]; 
+    sem_post(&sp->mutex);                      
+    sem_post(&sp->slots);                  
+    return item;
+}

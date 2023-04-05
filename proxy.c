@@ -23,6 +23,9 @@ void print_bytes(unsigned char *, int);
 int open_sfd();
 void handle_client();
 void *thread(void *descriptor);
+static int byte_cnt;  /* Byte counter */
+static sem_t mutex;   /* and the mutex that protects it */
+static void init_echo_cnt(void);
 
 typedef struct {
    int *buf; //Buffer array
@@ -33,6 +36,19 @@ typedef struct {
    sem_t slots; //Counts abailable slots
    sem_t items; //Counts abailable items
 } sbuf_t;
+
+typedef struct {
+	int rio_fd; /* descriptor for this internal buf */
+	int rio_cnt; /* unread bytes in internal buf */
+	char *rio_bufptr; /* next unread byte in internal buf */
+	char rio_buf[8192]; /* internal buffer */
+} rio_t;
+
+void rio_readinitb(rio_t *rp, int fd);
+ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
+static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n);
+ssize_t rio_writen(int fd, void *usrbuf, size_t n);
+
 
 void sbuf_init(sbuf_t *sp, int n);
 void sbuf_deinit(sbuf_t *sp);
@@ -56,7 +72,7 @@ int main(int argc, char *argv[])
 		pthread_create(&tid, NULL, thread, NULL); 
 	}
 	while(1){
-		
+		addr_len = sizeof(addr);
 		int sfd2 = accept(sfd, (struct sockaddr *)&addr, &addr_len);
 		
 		if (sfd2 < 0){
@@ -72,11 +88,10 @@ int main(int argc, char *argv[])
 
 void *thread(void *descriptor){
 	//int id = *((int *)descriptor);
-	
-		pthread_detach(pthread_self());
+	pthread_detach(pthread_self());
 	while (1) {
 		int connfd = sbuf_remove(&sbuf);
-		handle_client(descriptor);
+		handle_client(connfd);
 		close(connfd);
 	}
 	//close(id);
@@ -84,10 +99,23 @@ void *thread(void *descriptor){
 }
 
 void handle_client(int sfd){
+	
+	rio_t rio;
+	static pthread_once_t once = PTHREAD_ONCE_INIT;
+	pthread_once(&once, init_echo_cnt);
+
 	char buf[MAX_OBJECT_SIZE] = {0};
 	char res[255] = {0};
 	char method[16], hostname[64], port[8], path[64], headers[1024] = {0};
-	read(sfd,buf, 255,0);
+	printf("1st %d\n", sfd);
+	rio_readinitb(&rio, sfd); 
+	printf("2nd %d\n", rio.rio_fd);
+	rio_readlineb(&rio, buf, 255);
+	
+	//read(sfd,buf, 255,0);
+	sem_wait(&mutex);
+	sem_post(&mutex);
+	
 	if (parse_request(buf, method, hostname, port, path, headers)) {
 			printf("METHOD: %s\n", method);
 			printf("HOSTNAME: %s\n", hostname);
@@ -136,6 +164,8 @@ void handle_client(int sfd){
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
 		exit(EXIT_FAILURE);
 	}
+	
+	
 	for (rp = result; rp != NULL; rp = rp->ai_next) {
 		sfd2 = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 		if (sfd2 < 0) {
@@ -155,9 +185,6 @@ void handle_client(int sfd){
 	
 	i = send(sfd2, request, 255, 0);
 
-	//while (i != 0){
-		i = send(sfd2, request, 255, 0);
-	//}
 	if (i < 0){
 		printf("Could not send: %s\n", strerror(errno));
 	}
@@ -176,7 +203,8 @@ void handle_client(int sfd){
 	}
 	printf("Here: %d\n" , i);
 	close(sfd2);
-	int w = write(sfd,buf, loc,0);
+	int w = rio_writen(sfd, buf, loc);
+	//int w = write(sfd,buf, loc,0);
 	if (w < 0){
 		printf("Could not write: %s\n", strerror(errno));
 	}
@@ -383,12 +411,12 @@ void print_bytes(unsigned char *bytes, int byteslen) {
 }
 
 void sbuf_init(sbuf_t *sp, int n) {
-   sp->buf = calloc(n, sizeof(int));
-   sp->n = n;                   
-   sp->front = sp->rear = 0;     
-   sem_init(&sp->mutex, 0, 1);   
-   sem_init(&sp->slots, 0, n);   
-   sem_init(&sp->items, 0, 0);   
+    sp->buf = calloc(n, sizeof(int)); 
+    sp->n = n;                       /* Buffer holds max of n items */
+    sp->front = sp->rear = 0;        /* Empty buffer iff front == rear */
+    sem_init(&sp->mutex, 0, 1);      /* Binary semaphore for locking */
+    sem_init(&sp->slots, 0, n);      /* Initially, buf has n empty slots */
+    sem_init(&sp->items, 0, 0);      /* Initially, buf has zero data items */  
 }
 
 void sbuf_deinit(sbuf_t *sp) {
@@ -404,11 +432,96 @@ void sbuf_insert(sbuf_t *sp, int item) {
 }
 
 int sbuf_remove(sbuf_t *sp) {
-   int item;
+    int item;
     sem_wait(&sp->items);                         
     sem_wait(&sp->mutex);                       
     item = sp->buf[(++sp->front)%(sp->n)]; 
     sem_post(&sp->mutex);                      
     sem_post(&sp->slots);                  
     return item;
+}
+
+static void init_echo_cnt(void)
+{
+    sem_init(&mutex, 0, 1);
+    byte_cnt = 0;
+}
+
+void rio_readinitb(rio_t *rp, int fd) 
+{
+    rp->rio_fd = fd;  
+    rp->rio_cnt = 0;  
+    rp->rio_bufptr = rp->rio_buf;
+}
+
+ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) 
+{
+    int n, rc;
+    char c, *bufp = usrbuf;
+
+    for (n = 1; n < maxlen; n++) { 
+        if ((rc = rio_read(rp, &c, 1)) == 1) {
+	    *bufp++ = c;
+	    if (c == '\n') {
+                n++;
+     		break;
+            }
+	} else if (rc == 0) {
+	    if (n == 1)
+		return 0; /* EOF, no data read */
+	    else
+		break;    /* EOF, some data was read */
+	} else
+	    return -1;	  /* Error */
+    }
+    *bufp = 0;
+    return n-1;
+}
+
+static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n)
+{
+    int cnt;
+
+    while (rp->rio_cnt <= 0) {  /* Refill if buf is empty */
+	printf("Here: %d\n", rp->rio_fd);
+	rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, 
+			   sizeof(rp->rio_buf));
+	
+	if (rp->rio_cnt < 0) {
+	    if (errno != EINTR) /* Interrupted by sig handler return */
+		return -1;
+	}
+	else if (rp->rio_cnt == 0)  /* EOF */
+	    return 0;
+	else 
+	    rp->rio_bufptr = rp->rio_buf; /* Reset buffer ptr */
+    }
+
+    /* Copy min(n, rp->rio_cnt) bytes from internal buf to user buf */
+    cnt = n;          
+    if (rp->rio_cnt < n)   
+	cnt = rp->rio_cnt;
+    memcpy(usrbuf, rp->rio_bufptr, cnt);
+    rp->rio_bufptr += cnt;
+    rp->rio_cnt -= cnt;
+    return cnt;
+}
+
+ssize_t rio_writen(int fd, void *usrbuf, size_t n) 
+{
+    size_t nleft = n;
+    ssize_t nwritten;
+    char *bufp = usrbuf;
+
+    while (nleft > 0) {
+	if ((nwritten = write(fd, bufp, nleft)) <= 0) {
+	    if (errno == EINTR)  /* Interrupted by sig handler return */
+		nwritten = 0;    /* and call write() again */
+	    else
+		return -1;       /* errno set by write() */
+	}
+	nleft -= nwritten;
+	bufp += nwritten;
+    }
+    return n;
 }

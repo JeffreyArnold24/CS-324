@@ -187,7 +187,7 @@ void handle_client(int sfd){
 		printf("Could not send: %s\n", strerror(errno));
 	}
 	//print_bytes(request,255);
-	//printf("Here: %d\n" , i);
+	printf("Request: %s\n" , request);
 	int loc = 0;
 	while (i != 0){
 		i = read(sfd2, res, 255);

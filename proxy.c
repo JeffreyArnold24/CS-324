@@ -107,9 +107,7 @@ void handle_client(int sfd){
 	char buf[MAX_OBJECT_SIZE] = {0};
 	char res[255] = {0};
 	char method[16], hostname[64], port[8], path[64], headers[1024] = {0};
-	printf("1st %d\n", sfd);
 	rio_readinitb(&rio, sfd); 
-	printf("2nd %d\n", rio.rio_fd);
 	rio_readlineb(&rio, buf, 255);
 	
 	//read(sfd,buf, 255,0);
@@ -146,7 +144,7 @@ void handle_client(int sfd){
 	strcat(request, "\r\n");
 	strcat(request, "Connection: close\r\n");
 	strcat(request, "Proxy-Connection: close\r\n\r\n");
-		
+	printf("Request: %s\n", request);
 	
 	struct addrinfo hints;
 	struct addrinfo *result, *rp;
@@ -198,10 +196,9 @@ void handle_client(int sfd){
 		}
 		memcpy(&buf[loc], &res, 255);
 		loc = loc + i;
-		print_bytes(buf,500);
 		printf("%d\n" , i);
 	}
-	printf("Here: %d\n" , i);
+	printf("Response: %s\n", res);
 	close(sfd2);
 	int w = rio_writen(sfd, buf, loc);
 	//int w = write(sfd,buf, loc,0);

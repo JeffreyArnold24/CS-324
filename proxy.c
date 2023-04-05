@@ -186,8 +186,8 @@ void handle_client(int sfd){
 	if (i < 0){
 		printf("Could not send: %s\n", strerror(errno));
 	}
-	print_bytes(request,255);
-	printf("Here: %d\n" , i);
+	//print_bytes(request,255);
+	//printf("Here: %d\n" , i);
 	int loc = 0;
 	while (i != 0){
 		i = read(sfd2, res, 255);
@@ -480,7 +480,7 @@ static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n)
     int cnt;
 
     while (rp->rio_cnt <= 0) {  /* Refill if buf is empty */
-	printf("Here: %d\n", rp->rio_fd);
+	//printf("Here: %d\n", rp->rio_fd);
 	rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, 
 			   sizeof(rp->rio_buf));
 	

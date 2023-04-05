@@ -62,14 +62,14 @@ sbuf_t sbuf;
 int main(int argc, char *argv[])
 {
 	//test_parser();
-	pthread_t tid;
+	pthread_t tid[8];
 	int sfd = open_sfd(argv[1]);
 
 	struct sockaddr_storage addr;
  	socklen_t addr_len = sizeof(addr);
-	sbuf_init(&sbuf, 10);
+	sbuf_init(&sbuf, 5);
 	for (int i = 0; i < 8; i++){
-		pthread_create(&tid, NULL, thread, NULL); 
+		pthread_create(&tid[i], NULL, thread, NULL); 
 	}
 	while(1){
 		addr_len = sizeof(addr);
@@ -111,8 +111,8 @@ void handle_client(int sfd){
 	rio_readlineb(&rio, buf, 255);
 	
 	//read(sfd,buf, 255,0);
-	sem_wait(&mutex);
-	sem_post(&mutex);
+	//sem_wait(&mutex);
+	//sem_post(&mutex);
 	
 	if (parse_request(buf, method, hostname, port, path, headers)) {
 			printf("METHOD: %s\n", method);

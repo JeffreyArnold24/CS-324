@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_storage addr;
  	socklen_t addr_len = sizeof(addr);
 	sbuf_init(&sbuf, 5);
-	for (int i = 0; i < 8; i++){
+	for (int i = 0; i < 9; i++){
 		pthread_create(&tid[i], NULL, thread, NULL); 
 	}
 	while(1){
@@ -99,7 +99,7 @@ void *thread(void *descriptor){
 }
 
 void handle_client(int sfd){
-	
+	printf("Start: %d\n", sfd);
 	rio_t rio;
 	static pthread_once_t once = PTHREAD_ONCE_INIT;
 	pthread_once(&once, init_echo_cnt);
@@ -112,14 +112,13 @@ void handle_client(int sfd){
 	
 	//read(sfd,buf, 255,0);
 	//sem_wait(&mutex);
-	//sem_post(&mutex);
 	
 	if (parse_request(buf, method, hostname, port, path, headers)) {
-			printf("METHOD: %s\n", method);
-			printf("HOSTNAME: %s\n", hostname);
-			printf("PORT: %s\n", port);
-			printf("HEADERS: %s\n", headers);
-			printf("Path: %s\n", path);
+			//printf("METHOD: %s\n", method);
+			//printf("HOSTNAME: %s\n", hostname);
+			//printf("PORT: %s\n", port);
+			//printf("HEADERS: %s\n", headers);
+			//printf("Path: %s\n", path);
 	} else {
 		printf("REQUEST INCOMPLETE\n");
 	}
@@ -187,9 +186,10 @@ void handle_client(int sfd){
 		printf("Could not send: %s\n", strerror(errno));
 	}
 	//print_bytes(request,255);
-	printf("Request: %s\n" , request);
 	int loc = 0;
 	while (i != 0){
+	//while ((i != 0) && all_headers_received(res)){
+	//while (!all_headers_received(res)){
 		i = read(sfd2, res, 255);
 		if (i < 0){
 			printf("Could not read (a): %s %d\n", strerror(errno), sfd2);
@@ -197,7 +197,10 @@ void handle_client(int sfd){
 		}
 		memcpy(&buf[loc], &res, 255);
 		loc = loc + i;
-		printf("%d\n" , i);
+		//printf("%d\n" , i);
+		/*if(all_headers_received(res)){
+			break;
+		}*/
 	}
 	printf("Response: %s\n", res);
 	close(sfd2);
@@ -206,7 +209,8 @@ void handle_client(int sfd){
 	if (w < 0){
 		printf("Could not write: %s\n", strerror(errno));
 	}
-	
+	//sem_post(&mutex);
+	printf("Finish: %d\n", sfd);
 	close(sfd);
 	
 	freeaddrinfo(result);

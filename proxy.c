@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <unistd.h>
 
 /* Recommended max cache and object sizes */
 #define MAX_CACHE_SIZE 1049000
@@ -26,6 +27,7 @@ void *thread(void *descriptor);
 static int byte_cnt;  /* Byte counter */
 static sem_t mutex;   /* and the mutex that protects it */
 static void init_echo_cnt(void);
+int slow;
 
 typedef struct {
    int *buf; //Buffer array
@@ -68,7 +70,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_storage addr;
  	socklen_t addr_len = sizeof(addr);
 	sbuf_init(&sbuf, 5);
-	for (int i = 0; i < 9; i++){
+	for (int i = 0; i < 8; i++){
 		pthread_create(&tid[i], NULL, thread, NULL); 
 	}
 	while(1){
@@ -103,14 +105,28 @@ void handle_client(int sfd){
 	rio_t rio;
 	static pthread_once_t once = PTHREAD_ONCE_INIT;
 	pthread_once(&once, init_echo_cnt);
-
+	char temp[MAX_OBJECT_SIZE] = {0};
 	char buf[MAX_OBJECT_SIZE] = {0};
 	char res[255] = {0};
 	char method[16], hostname[64], port[8], path[64], headers[1024] = {0};
 	rio_readinitb(&rio, sfd); 
-	rio_readlineb(&rio, buf, 255);
+	//rio_readlineb(&rio, buf, 255);
 	
-	//read(sfd,buf, 255,0);
+	//int r = read(sfd,buf, 255,0);
+	int loc2 = 0;
+	int r = 0;
+	while (1){
+		r = recv(sfd,temp, 255,0);
+		memcpy(&buf[loc2], &temp, 255);
+		loc2 = loc2 + r;
+		printf("Amount read: %d\n",r);
+		printf("Temp: %s\n", temp); 
+		printf("Buf: %s\n", buf); 
+		if (all_headers_received(buf)){
+			break;
+		}
+	}
+	//printf("Amount read: %d\n",r);
 	//sem_wait(&mutex);
 	
 	if (parse_request(buf, method, hostname, port, path, headers)) {
@@ -124,7 +140,7 @@ void handle_client(int sfd){
 	}
 	
 	
-	unsigned char request[MAX_OBJECT_SIZE] = {0};
+	char request[MAX_OBJECT_SIZE] = {0};
 	strcat(request, method);
 	strcat(request, " ");
 	strcat(request, path);
@@ -234,7 +250,7 @@ int open_sfd(char *portNumber){
 		exit(EXIT_FAILURE);
 	}
 
-	short portB = atoi(portNumber);
+	//short portB = atoi(portNumber);
 	int sfd = socket(result->ai_family, result->ai_socktype, 0);
 	int optval = 1;
 	setsockopt(sfd, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval));
@@ -460,7 +476,7 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen)
 {
     int n, rc;
     char c, *bufp = usrbuf;
-
+    slow = 0;
     for (n = 1; n < maxlen; n++) { 
         if ((rc = rio_read(rp, &c, 1)) == 1) {
 	    *bufp++ = c;
@@ -485,7 +501,7 @@ static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n)
     int cnt;
 
     while (rp->rio_cnt <= 0) {  /* Refill if buf is empty */
-	//printf("Here: %d\n", rp->rio_fd);
+	printf("Here: Slow?");
 	rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, 
 			   sizeof(rp->rio_buf));
 	

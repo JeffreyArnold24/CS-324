@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
   int *saved = malloc(sizeof(int)*yres*xres);
 
   omp_set_num_threads(8);
-  #pragma omp
+  #pragma omp for
   for (j = 0; j < yres; j++) {
     y = ymax - j * dy;
     for(i = 0; i < xres; i++) {
@@ -107,6 +107,7 @@ int main(int argc, char* argv[])
       saved[xres * j + i] = k;
     }
   }
+
 
   clock_gettime(CLOCK_MONOTONIC, &finish);
 

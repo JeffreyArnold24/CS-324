@@ -41,10 +41,6 @@
 int main(int argc, char* argv[])
 {
   /* Parse the command line arguments. */
-    struct timespec start, finish;
-    double elapsed;
-
-    clock_gettime(CLOCK_MONOTONIC, &start);
 
   if (argc != 8) {
     printf("Usage:   %s <xmin> <xmax> <ymin> <ymax> <maxiter> <xres> <out.ppm>\n", argv[0]);
@@ -87,8 +83,8 @@ int main(int argc, char* argv[])
   int k; /* Iteration counter */
   int *saved = malloc(sizeof(int)*yres*xres);
 
-  omp_set_num_threads(8);
-  #pragma omp for
+  double start = omp_get_wtime();
+  #pragma omp parallel for private(i,j,k)
   for (j = 0; j < yres; j++) {
     y = ymax - j * dy;
     for(i = 0; i < xres; i++) {
@@ -108,12 +104,7 @@ int main(int argc, char* argv[])
     }
   }
 
-
-  clock_gettime(CLOCK_MONOTONIC, &finish);
-
-  elapsed = (finish.tv_sec - start.tv_sec);
-  elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-
+  double elapsed = omp_get_wtime() - start;
   printf("%f\n", elapsed);
 
   for (j = 0; j < yres; j++) {

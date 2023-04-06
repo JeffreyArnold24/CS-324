@@ -76,7 +76,6 @@ int main(int argc, char *argv[])
 	while(1){
 		addr_len = sizeof(addr);
 		int sfd2 = accept(sfd, (struct sockaddr *)&addr, &addr_len);
-		sleep(1);
 		if (sfd2 < 0){
 			printf("Could not accept: %s\n", strerror(errno));
 		}
@@ -122,6 +121,7 @@ void handle_client(int sfd){
 		printf("Amount read: %d\n",r);
 		printf("Temp: %s\n", temp); 
 		printf("Buf: %s\n", buf); 
+		sleep(1);
 		if (all_headers_received(buf)){
 			break;
 		}

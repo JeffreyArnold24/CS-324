@@ -113,6 +113,7 @@ void handle_client(int sfd){
 	//int r = read(sfd,buf, 255,0);
 	int loc2 = 0;
 	int r = 0;
+printf("Here\n");
 	while (1){
 		r = recv(sfd,temp, 255,0);
 		memcpy(&buf[loc2], &temp, 255);

@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include <unistd.h>
+//#include <unistd.h>
 
 /* Recommended max cache and object sizes */
 #define MAX_CACHE_SIZE 1049000

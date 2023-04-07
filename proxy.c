@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
-//#include <unistd.h>
+#include <unistd.h>
 
 /* Recommended max cache and object sizes */
 #define MAX_CACHE_SIZE 1049000
@@ -100,7 +100,6 @@ void *thread(void *descriptor){
 }
 
 void handle_client(int sfd){
-	printf("Start: %d\n", sfd);
 	rio_t rio;
 	static pthread_once_t once = PTHREAD_ONCE_INIT;
 	pthread_once(&once, init_echo_cnt);
@@ -118,10 +117,9 @@ void handle_client(int sfd){
 		r = recv(sfd,temp, 255,0);
 		memcpy(&buf[loc2], &temp, 255);
 		loc2 = loc2 + r;
-		printf("Amount read: %d\n",r);
+		printf("Amount read: %d %d\n",r, sfd);
 		printf("Temp: %s\n", temp); 
 		printf("Buf: %s\n", buf); 
-		sleep(1);
 		if (all_headers_received(buf)){
 			break;
 		}
@@ -159,7 +157,7 @@ void handle_client(int sfd){
 	strcat(request, "\r\n");
 	strcat(request, "Connection: close\r\n");
 	strcat(request, "Proxy-Connection: close\r\n\r\n");
-	printf("Request: %s\n", request);
+	//printf("Request: %s\n", request);
 	
 	struct addrinfo hints;
 	struct addrinfo *result, *rp;
@@ -218,7 +216,7 @@ void handle_client(int sfd){
 			break;
 		}*/
 	}
-	printf("Response: %s\n", res);
+	//printf("Response: %s\n", res);
 	close(sfd2);
 	int w = rio_writen(sfd, buf, loc);
 	//int w = write(sfd,buf, loc,0);
@@ -226,7 +224,7 @@ void handle_client(int sfd){
 		printf("Could not write: %s\n", strerror(errno));
 	}
 	//sem_post(&mutex);
-	printf("Finish: %d\n", sfd);
+	//printf("Finish: %d\n", sfd);
 	close(sfd);
 	
 	freeaddrinfo(result);

@@ -105,9 +105,7 @@ void handle_client(int sfd){
 	char res[255] = {0};
 	char method[16], hostname[64], port[8], path[64], headers[1024] = {0};
 	rio_readinitb(&rio, sfd); 
-	//rio_readlineb(&rio, buf, 255);
-	
-	//int r = read(sfd,buf, 255,0);
+
 	int loc2 = 0;
 	int r = 0;
 
@@ -177,9 +175,11 @@ void handle_client(int sfd){
 		}
 	}
 	
-	int i = 0;
-	
-	i = send(sfd2, request, 255, 0);
+	int i = 1;
+
+	while (i > 0){
+		i = write(sfd2, request, 255);
+	}
 
 	if (i < 0){
 		printf("Could not send: %s\n", strerror(errno));

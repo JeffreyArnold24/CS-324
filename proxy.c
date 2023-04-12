@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 
 	struct sockaddr_storage addr;
  	socklen_t addr_len = sizeof(addr);
-	sbuf_init(&sbuf, 5);
+	sbuf_init(&sbuf, 10);
 	for (int i = 0; i < 8; i++){
 		pthread_create(&tid, NULL, thread, NULL); 
 	}

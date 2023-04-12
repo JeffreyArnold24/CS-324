@@ -63,7 +63,7 @@ sbuf_t sbuf;
 
 int main(int argc, char *argv[])
 {
-	//test_parser();
+
 	pthread_t tid[8];
 	int sfd = open_sfd(argv[1]);
 
@@ -79,24 +79,21 @@ int main(int argc, char *argv[])
 		if (sfd2 < 0){
 			printf("Could not accept: %s\n", strerror(errno));
 		}
-		//pthread_create(&tid, NULL, thread, sfd2);
 		sbuf_insert(&sbuf, sfd2);
-		//close(sfd2);
 	}
 	printf("%s\n", user_agent_hdr);
 	return 0;
 }
 
 void *thread(void *descriptor){
-	//int id = *((int *)descriptor);
+
 	pthread_detach(pthread_self());
 	while (1) {
 		int connfd = sbuf_remove(&sbuf);
 		handle_client(connfd);
 		close(connfd);
 	}
-	//close(id);
-	//return NULL;
+
 }
 
 void handle_client(int sfd){
@@ -113,27 +110,18 @@ void handle_client(int sfd){
 	//int r = read(sfd,buf, 255,0);
 	int loc2 = 0;
 	int r = 0;
-printf("Here\n");
-	while (1){
-		r = recv(sfd,temp, 255,0);
+
+	while ((r = recv(sfd,temp, 255,0)) > 0){
 		memcpy(&buf[loc2], &temp, 255);
 		loc2 = loc2 + r;
-		printf("Amount read: %d %d\n",r, sfd);
-		printf("Temp: %s\n", temp); 
-		printf("Buf: %s\n", buf); 
 		if (all_headers_received(buf)){
 			break;
 		}
 	}
-	//printf("Amount read: %d\n",r);
-	//sem_wait(&mutex);
+
 	
 	if (parse_request(buf, method, hostname, port, path, headers)) {
-			//printf("METHOD: %s\n", method);
-			//printf("HOSTNAME: %s\n", hostname);
-			//printf("PORT: %s\n", port);
-			//printf("HEADERS: %s\n", headers);
-			//printf("Path: %s\n", path);
+
 	} else {
 		printf("REQUEST INCOMPLETE\n");
 	}
@@ -188,10 +176,6 @@ printf("Here\n");
 			continue;
 		}
 	}
-	/*if (rp == NULL){
-		printf("Could not connect: %s\n", strerror(errno));
-			exit(EXIT_FAILURE);	
-	}*/
 	
 	int i = 0;
 	

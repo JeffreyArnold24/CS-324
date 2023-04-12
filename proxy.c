@@ -64,14 +64,14 @@ sbuf_t sbuf;
 int main(int argc, char *argv[])
 {
 
-	pthread_t tid[8];
+	pthread_t tid;
 	int sfd = open_sfd(argv[1]);
 
 	struct sockaddr_storage addr;
  	socklen_t addr_len = sizeof(addr);
 	sbuf_init(&sbuf, 5);
 	for (int i = 0; i < 8; i++){
-		pthread_create(&tid[i], NULL, thread, NULL); 
+		pthread_create(&tid, NULL, thread, NULL); 
 	}
 	while(1){
 		addr_len = sizeof(addr);

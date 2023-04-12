@@ -175,11 +175,9 @@ void handle_client(int sfd){
 		}
 	}
 	
-	int i = 1;
-
-	while (i > 0){
-		i = write(sfd2, request, 255);
-	}
+	int i = 0;
+	
+	i = send(sfd2, request, 500, 0);
 
 	if (i < 0){
 		printf("Could not send: %s\n", strerror(errno));
@@ -202,7 +200,7 @@ void handle_client(int sfd){
 		}*/
 	}
 	//printf("Response: %s\n", res);
-	close(sfd2);
+	//close(sfd2);
 	int w = rio_writen(sfd, buf, loc);
 	//int w = write(sfd,buf, loc,0);
 	if (w < 0){
@@ -210,7 +208,7 @@ void handle_client(int sfd){
 	}
 	//sem_post(&mutex);
 	//printf("Finish: %d\n", sfd);
-	close(sfd);
+	//close(sfd);
 	
 	freeaddrinfo(result);
 }
